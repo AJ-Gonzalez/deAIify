@@ -7,6 +7,7 @@ import (
 
 	"deaiify/internal/detector"
 	"deaiify/internal/git"
+	"deaiify/internal/linter"
 	"deaiify/internal/parser"
 	"deaiify/internal/transformer"
 	"deaiify/internal/walker"
@@ -17,7 +18,11 @@ var (
 	verbose     = flag.Bool("verbose", false, "Show detailed transformation log")
 	scanCommits = flag.Bool("scan-commits", false, "Scan git commits for AI patterns")
 	commitCount = flag.Int("commits", 20, "Number of commits to scan (default 20)")
+	noLint      = flag.Bool("no-lint", false, "Skip running linters after transformation")
+	lint        = flag.Bool("lint", false, "Run linters after transformation (auto-detected)")
 )
+
+var availableTools linter.AvailableTools
 
 func main() {
 	flag.Parse()
@@ -38,12 +43,25 @@ func main() {
 		fmt.Println("\nOptions:")
 		fmt.Println("  --dry-run       Show what would change without modifying files")
 		fmt.Println("  --verbose       Show detailed transformation log")
+		fmt.Println("  --lint          Run linters after transformation")
+		fmt.Println("  --no-lint       Skip linters even if available")
 		fmt.Println("  --scan-commits  Scan git commits for AI patterns")
 		fmt.Println("  --commits N     Number of commits to scan (default 20)")
 		os.Exit(1)
 	}
 
 	path := flag.Arg(0)
+
+	// Detect available linting tools
+	availableTools = linter.DetectTools()
+	if *verbose {
+		if availableTools.JSLinter != nil {
+			fmt.Printf("JS linter: %s\n", availableTools.JSLinter.Name)
+		}
+		if availableTools.PyLinter != nil {
+			fmt.Printf("Python linter: %s\n", availableTools.PyLinter.Name)
+		}
+	}
 
 	// Validate path exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -89,6 +107,43 @@ func main() {
 	} else {
 		fmt.Printf("\nProcessed %d files, made %d transformations\n", totalFiles, totalTransformations)
 	}
+
+	// Run linters if requested and not dry-run
+	if *lint && !*noLint && !*dryRun && totalFiles > 0 {
+		fmt.Println("\nRunning linters...")
+		lintErrors := 0
+
+		for _, file := range files {
+			isPython := file.IsPython()
+
+			// Check syntax first
+			syntaxResult := linter.CheckSyntax(file.Path, isPython)
+			if !syntaxResult.Success {
+				fmt.Printf("  SYNTAX ERROR in %s:\n    %s\n", file.Path, syntaxResult.Output)
+				lintErrors++
+				continue
+			}
+
+			// Run linter
+			result := linter.RunLinter(file.Path, isPython, availableTools)
+			if *verbose && result.Tool != "none" {
+				fmt.Printf("  %s: %s\n", file.Path, result.Tool)
+			}
+			if !result.Success {
+				fmt.Printf("  LINT ERROR in %s:\n    %s\n", file.Path, result.Output)
+				lintErrors++
+			}
+		}
+
+		if lintErrors > 0 {
+			fmt.Printf("\n%d files had linting issues\n", lintErrors)
+		} else if *verbose {
+			fmt.Println("All files passed linting")
+		}
+	}
+
+	// Show missing tools hint
+	linter.PrintMissingTools(availableTools, *verbose)
 }
 
 func processFile(file walker.FileInfo) (int, error) {

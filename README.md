@@ -15,6 +15,7 @@ deaiify ./src                    # Process all supported files in directory
 deaiify ./src --dry-run          # Show what would change without modifying
 deaiify ./main.py                # Process single file
 deaiify ./src --verbose          # Show detailed transformation log
+deaiify ./src --lint             # Run linters after transformation
 deaiify --scan-commits           # Scan git commits for AI patterns
 ```
 
@@ -52,6 +53,21 @@ Replaces with human-style comments:
 - Occasionally removes trailing commas
 - Adds random extra blank lines
 - Minor spacing variations
+
+### Linting Integration
+
+Use `--lint` to run linters after transformation. Supports:
+
+**JavaScript/TypeScript:**
+- ESLint (`npm install -g eslint`)
+- Prettier (`npm install -g prettier`)
+
+**Python:**
+- Ruff (`pip install ruff`)
+- Black (`pip install black`)
+- Flake8 (`pip install flake8`)
+
+Linters are auto-detected. If none are found, syntax checking still runs via Node.js/Python to ensure valid code.
 
 ### Git Commit Scanning
 
