@@ -36,6 +36,33 @@ var JSTools = []Tool{
 	},
 }
 
+var GoTools = []Tool{
+	{
+		Name:       "gofmt",
+		Command:    "gofmt",
+		Args:       []string{"-w"},
+		InstallCmd: "Included with Go installation",
+		InstallURL: "https://golang.org/doc/install",
+		Languages:  []string{"go"},
+	},
+	{
+		Name:       "staticcheck",
+		Command:    "staticcheck",
+		Args:       []string{},
+		InstallCmd: "go install honnef.co/go/tools/cmd/staticcheck@latest",
+		InstallURL: "https://staticcheck.io/",
+		Languages:  []string{"go"},
+	},
+	{
+		Name:       "golangci-lint",
+		Command:    "golangci-lint",
+		Args:       []string{"run"},
+		InstallCmd: "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest",
+		InstallURL: "https://golangci-lint.run/",
+		Languages:  []string{"go"},
+	},
+}
+
 var PyTools = []Tool{
 	{
 		Name:       "Ruff",
@@ -82,6 +109,15 @@ var PySyntaxCheck = Tool{
 	Languages:  []string{"py"},
 }
 
+var GoSyntaxCheck = Tool{
+	Name:       "Go",
+	Command:    "go",
+	Args:       []string{"build", "-o", "/dev/null"},
+	InstallCmd: "Download from https://golang.org/",
+	InstallURL: "https://golang.org/",
+	Languages:  []string{"go"},
+}
+
 // Result of running a tool
 type Result struct {
 	Tool    string
@@ -94,8 +130,10 @@ type Result struct {
 type AvailableTools struct {
 	JSLinter     *Tool
 	PyLinter     *Tool
+	GoLinter     *Tool
 	JSSyntax     bool
 	PySyntax     bool
+	GoSyntax     bool
 	MissingTools []Tool
 }
 
@@ -123,9 +161,20 @@ func DetectTools() AvailableTools {
 		}
 	}
 
+	// Check Go linters
+	for i := range GoTools {
+		if isAvailable(GoTools[i].Command) {
+			result.GoLinter = &GoTools[i]
+			break
+		} else {
+			result.MissingTools = append(result.MissingTools, GoTools[i])
+		}
+	}
+
 	// Check syntax validators
 	result.JSSyntax = isAvailable(JSSyntaxCheck.Command)
 	result.PySyntax = isAvailable(PySyntaxCheck.Command)
+	result.GoSyntax = isAvailable(GoSyntaxCheck.Command)
 
 	return result
 }
@@ -137,10 +186,12 @@ func isAvailable(cmd string) bool {
 }
 
 // CheckSyntax verifies a file has valid syntax
-func CheckSyntax(path string, isPython bool) Result {
+func CheckSyntax(path string, isPython bool, isGo bool) Result {
 	var tool Tool
 	if isPython {
 		tool = PySyntaxCheck
+	} else if isGo {
+		tool = GoSyntaxCheck
 	} else {
 		tool = JSSyntaxCheck
 	}
@@ -174,10 +225,12 @@ func CheckSyntax(path string, isPython bool) Result {
 }
 
 // RunLinter runs the appropriate linter on a file
-func RunLinter(path string, isPython bool, tools AvailableTools) Result {
+func RunLinter(path string, isPython bool, isGo bool, tools AvailableTools) Result {
 	var tool *Tool
 	if isPython {
 		tool = tools.PyLinter
+	} else if isGo {
+		tool = tools.GoLinter
 	} else {
 		tool = tools.JSLinter
 	}

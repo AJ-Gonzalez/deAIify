@@ -13,6 +13,7 @@ var SupportedExtensions = map[string]bool{
 	".js":  true,
 	".jsx": true,
 	".py":  true,
+	".go":  true,
 }
 
 // IgnorePatterns defines directories to skip
@@ -90,4 +91,9 @@ func (f FileInfo) IsJavaScript() bool {
 // IsPython returns true if the extension is Python
 func (f FileInfo) IsPython() bool {
 	return f.Ext == ".py"
+}
+
+// IsGo returns true if the extension is Go
+func (f FileInfo) IsGo() bool {
+	return f.Ext == ".go"
 }

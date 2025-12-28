@@ -61,6 +61,9 @@ func main() {
 		if availableTools.PyLinter != nil {
 			fmt.Printf("Python linter: %s\n", availableTools.PyLinter.Name)
 		}
+		if availableTools.GoLinter != nil {
+			fmt.Printf("Go linter: %s\n", availableTools.GoLinter.Name)
+		}
 	}
 
 	// Validate path exists
@@ -115,9 +118,10 @@ func main() {
 
 		for _, file := range files {
 			isPython := file.IsPython()
+			isGo := file.IsGo()
 
 			// Check syntax first
-			syntaxResult := linter.CheckSyntax(file.Path, isPython)
+			syntaxResult := linter.CheckSyntax(file.Path, isPython, isGo)
 			if !syntaxResult.Success {
 				fmt.Printf("  SYNTAX ERROR in %s:\n    %s\n", file.Path, syntaxResult.Output)
 				lintErrors++
@@ -125,7 +129,7 @@ func main() {
 			}
 
 			// Run linter
-			result := linter.RunLinter(file.Path, isPython, availableTools)
+			result := linter.RunLinter(file.Path, isPython, isGo, availableTools)
 			if *verbose && result.Tool != "none" {
 				fmt.Printf("  %s: %s\n", file.Path, result.Tool)
 			}
@@ -158,8 +162,11 @@ func processFile(file walker.FileInfo) (int, error) {
 	// Select parser
 	var p parser.Parser
 	isPython := file.IsPython()
+	isGo := file.IsGo()
 	if isPython {
 		p = parser.NewPythonParser()
+	} else if isGo {
+		p = parser.NewGoParser()
 	} else {
 		p = parser.NewJavaScriptParser()
 	}

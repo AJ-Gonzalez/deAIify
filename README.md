@@ -23,6 +23,7 @@ deaiify --scan-commits           # Scan git commits for AI patterns
 
 - TypeScript/JavaScript (.ts, .tsx, .js, .jsx)
 - Python (.py)
+- Go (.go)
 
 ## What It Does
 
@@ -66,6 +67,11 @@ Use `--lint` to run linters after transformation. Supports:
 - Ruff (`pip install ruff`)
 - Black (`pip install black`)
 - Flake8 (`pip install flake8`)
+
+**Go:**
+- gofmt (included with Go)
+- staticcheck (`go install honnef.co/go/tools/cmd/staticcheck@latest`)
+- golangci-lint (`go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`)
 
 Linters are auto-detected. If none are found, syntax checking still runs via Node.js/Python to ensure valid code.
 
